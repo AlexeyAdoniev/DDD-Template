@@ -1,5 +1,5 @@
 ({
-  talbe: services.utils.getTableName(import.meta.url),
+  talbe: services.utils.getTableName(__filename),
   async get(id, fields) {
     return await services.db(this.talbe).read(id, fields);
   },
