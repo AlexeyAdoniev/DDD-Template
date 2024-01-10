@@ -7,4 +7,6 @@ export const CONFIG = {
   DB_PORT: Number(process.env['DB_PORT'] || 5432),
   DB_PASSWORD: process.env['DB_PASSWORD'],
   DB_USER: process.env['DB_USER'] || 'postgres',
+  PORT: +(process.env['PORT'] || 3000),
+  CONCURRENCY: process.env['CONCURRENCY'] === 'true',
 };

@@ -1,6 +1,6 @@
-import { CONFIG } from './config/index.js';
+import { CONFIG } from '../config/index.js';
 
-import { tableNameToId } from './lib/utils.js';
+import { tableNameToId } from './utils.js';
 
 import pg from 'pg';
 
@@ -27,7 +27,7 @@ function parseRecord(record) {
 }
 
 /**
- * @type {typeof services.db}
+ * @type {UserTypes.DB}
  */
 export default (table) => ({
   async read(id, fields = ['*']) {

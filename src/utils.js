@@ -41,10 +41,14 @@ function readBody(request) {
  * @return {string}
  */
 function tableNameToId(table) {
-  // if (table.match(/^"\S+"$/g)) {
-  //   table = table.slice(1, -1);
-  // }
   return table[0].toLowerCase() + table.slice(1) + 'Id';
 }
+/**
+ * @param {string} filename
+ * * @return {string}
+ */
+function getTableName(filename) {
+  return filename[0].toUpperCase() + filename.slice(1);
+}
 
-export { readBody, tableNameToId };
+export { readBody, tableNameToId, getTableName };

@@ -68,11 +68,11 @@ export default (size = 0) => {
   return pool;
 };
 
-const tasks = {
-  parseJSON: (body) => JSON.parse(body),
-};
-
-if (!isMainThread)
+// this will be executed inside worker_threads
+if (!isMainThread) {
+  const tasks = {
+    parseJSON: (body) => JSON.parse(body),
+  };
   parentPort.on('message', (json) => {
     const task = tasks[json.action];
     if (!task) {
@@ -82,3 +82,4 @@ if (!isMainThread)
     const result = task(json.payload);
     parentPort.postMessage(result);
   });
+}

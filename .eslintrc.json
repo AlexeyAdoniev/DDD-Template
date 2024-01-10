@@ -21,6 +21,7 @@
     "lib": "readonly",
     "db": "readonly",
     "bus": "readonly",
+    "table": "readonly",
     "domain": "readonly",
     "metarhia": "readonly"
   },
