@@ -18,6 +18,7 @@
     "node": "readonly",
     "npm": "readonly",
     "services": "readonly",
+    "UserTypes": "readonly",
     "lib": "readonly",
     "db": "readonly",
     "bus": "readonly",
@@ -52,6 +53,7 @@
     ],
     "eol-last": ["error"],
     "func-call-spacing": ["error", "never"],
+    "jsdoc/no-undefined-types": 1,
     "key-spacing": [
       "error",
       {
@@ -169,5 +171,6 @@
     "prefer-spread": ["error"],
     "rest-spread-spacing": ["error", "never"],
     "template-curly-spacing": ["error", "never"]
-  }
+  },
+  "plugins": ["jsdoc"]
 }

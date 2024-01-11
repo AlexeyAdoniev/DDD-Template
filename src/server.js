@@ -2,6 +2,36 @@ import http from 'node:http';
 //import ws from 'ws';
 
 import WorkerPool from './workers.js';
+import TransportFactory, { Transport } from './transport.js';
+
+class Client {
+  #transport;
+
+  /**
+   * @param {Transport} transport
+   */
+  constructor(transport) {
+    this.#transport = transport;
+    this.ip = transport.ip;
+    this.session = null;
+  }
+
+  static create(transport) {
+    return new Client(transport);
+  }
+
+  /**
+   * @param {number } code
+   *  @param {Object } data
+   */
+  error(code, data) {
+    this.#transport.error(code, data);
+  }
+
+  send(data, code) {
+    this.#transport.send(data, code);
+  }
+}
 
 class Server {
   /**
@@ -19,13 +49,27 @@ class Server {
   listen(port) {
     this.httpServer
       .on('request', async (req, res) => {
+        const transport = TransportFactory.http(this, req, res);
+        const client = Client.create(transport);
+
         const data = await this.parseBody(req).catch((e) => console.log(e));
-        console.log(data);
-        res.end('x');
+
+        this.rpc(client, data);
       })
       .listen(port, () => {
         console.log(`listening on port ${port}`);
       });
+  }
+
+  /**
+   * @param {Client} client
+   * @param {Object} data
+   */
+  rpc(client, data) {
+    client.send(data, 200);
+    // client;
+    // if (!data) {
+    // }
   }
 
   /**
@@ -36,8 +80,9 @@ class Server {
       (async () => {
         const workerPromise = WorkerPool().getWorker();
         const chunks = [];
+
         for await (const chunk of req) chunks.push(chunk);
-        //console.log(req['Symbol']);
+
         const body = Buffer.concat(chunks).toString();
         if (!body) return void resolve({});
         const worker = await workerPromise;

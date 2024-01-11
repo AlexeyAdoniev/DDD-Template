@@ -1,11 +1,14 @@
 {
-	"folders": [
-		{
-			"path": "."
-		},
-		{
-			"path": "../DDD"
-		}
-	],
-	"settings": {}
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "path": "../DDD"
+    },
+    {
+      "path": "../NodeJS-Pure"
+    }
+  ],
+  "settings": {}
 }

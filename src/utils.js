@@ -1,6 +1,6 @@
 import { IncomingMessage } from 'node:http';
 import Workers from './workers.js';
-IncomingMessage;
+
 /**
  * @param {IncomingMessage} request
  * @return {Promise}
