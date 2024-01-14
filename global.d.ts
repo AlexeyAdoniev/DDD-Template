@@ -1,5 +1,7 @@
-import { globalAgent } from 'node:http';
+import { globalAgent, IncomingMessage, ServerResponse } from 'node:http';
 import pg from 'pg';
+
+import { Server } from './src/server';
 
 type dbId = string | number;
 type dbRecord = {
@@ -27,13 +29,13 @@ declare global {
       addService(service: UserTypes.AnyField): UserTypes.ContainerFactory;
       get(): UserTypes.Container;
     };
-    type Application = {
-      [x: string]: {
-        get(): Promise<pg.QueryArrayResult<any>>;
-        post(): Promise<pg.QueryArrayResult<any>>;
-        put(): Promise<pg.QueryArrayResult<any>>;
-        delete(): Promise<pg.QueryArrayResult<any>>;
-      };
+    type Application = Map<string, (...args: any) => Promise<pg.QueryArrayResult<any>>>;
+    type TransportFactory = {
+      (server: Server, req: IncomingMessage): any;
+    };
+
+    type HttpTransportFactory = {
+      (server: Server, req: IncomingMessage, res: ServerResponse): any;
     };
   }
   const services: Services = {};

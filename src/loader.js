@@ -1,12 +1,16 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
+
 import { Script, createContext } from 'node:vm';
+//import { inspect } from 'node:util';
 import { getTableName } from './utils.js';
 
 const DEFAULT_SERVICES = {
   console,
   fetch,
 };
+
+const API_PATH = path.join(process.cwd(), '/api');
 
 const CONTEXT_OPTIONS = {
   timeout: 5000,
@@ -41,27 +45,59 @@ function Container({ ...inject }) {
     },
   };
 }
+
+async function load(filePath, container) {
+  const code = await fs.readFile(filePath, 'utf-8');
+  const script = new Script(`'use strict';\n${code}`);
+  const context = createContext(container);
+  return script.runInContext(context, CONTEXT_OPTIONS);
+}
+
 /**
- * loads app's routes and handlers in memory
+ * loads app's domain logic in memory and created collection of refs to it
  * @param {UserTypes.ContainerFactory} containerFactory
  * @return {Promise<any>}
  */
 async function AppLoader(containerFactory) {
-  const apiPath = path.join(process.cwd(), '/api');
-  const files = await fs.readdir(apiPath);
-  const app = {};
-  for (const file of files) {
-    if (!file.endsWith('.js')) continue;
-    const route = file.replace(/\.js$/, '');
-    const code = await fs.readFile(path.join(apiPath, file), 'utf-8');
-    const script = new Script(`'use strict';\n${code}`);
-    const container = containerFactory
-      .addService({ table: getTableName(route) })
-      .get();
-    const context = createContext(container);
-    app[route] = script.runInContext(context, CONTEXT_OPTIONS);
+  async function createApplication(dir = '', domain = {}) {
+    const root = path.join(API_PATH, dir);
+    const files = await fs.readdir(root);
+    for (const file of files) {
+      const filePath = path.join(root, file);
+      const stat = await fs.lstat(filePath);
+
+      if (stat.isFile() && !file.endsWith('.js')) continue;
+
+      const key = file.replace(/\.js$/, '');
+
+      if (stat.isFile()) {
+        domain[key] = await load(
+          filePath,
+          containerFactory.addService({ table: getTableName(key) }).get(),
+        );
+      } else {
+        domain[key] = await createApplication(path.join(dir, key));
+      }
+    }
+    return domain;
   }
-  return app;
+
+  const application = await createApplication();
+  return createRouting(application);
 }
 
-export { Container, AppLoader };
+//recursivly create routing from domain collection
+function createRouting(domain, path = '', routes = new Map()) {
+  for (const [key, value] of Object.entries(domain)) {
+    const subpath = (path + '.' + key).replace(/^\./, '');
+    if (typeof value === 'function') {
+      routes.set(subpath, value);
+    } else {
+      createRouting(value, subpath, routes);
+    }
+  }
+
+  return routes;
+}
+
+export { Container, AppLoader, createRouting };

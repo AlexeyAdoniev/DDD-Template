@@ -2,34 +2,31 @@ import http from 'node:http';
 //import ws from 'ws';
 
 import WorkerPool from './workers.js';
-import TransportFactory, { Transport } from './transport.js';
+import { Transport, HttpTransport } from './transport.js';
 
 class Client {
+  /**
+   * @type {Transport} transport
+   */
   #transport;
 
   /**
    * @param {Transport} transport
    */
-  constructor(transport) {
-    this.#transport = transport;
-    this.ip = transport.ip;
-    this.session = null;
-  }
-
   static create(transport) {
     return new Client(transport);
   }
 
-  /**
-   * @param {number } code
-   *  @param {Object } data
-   */
-  error(code, data) {
-    this.#transport.error(code, data);
+  constructor(transport) {
+    this.#transport = transport;
   }
 
-  send(data, code) {
+  send(data, code = 200) {
     this.#transport.send(data, code);
+  }
+
+  error(code = 500, message = '') {
+    this.#transport.error(code, message);
   }
 }
 
@@ -49,12 +46,14 @@ class Server {
   listen(port) {
     this.httpServer
       .on('request', async (req, res) => {
-        const transport = TransportFactory.http(this, req, res);
+        const transport = HttpTransport.create(this, req, res);
         const client = Client.create(transport);
 
         const data = await this.parseBody(req).catch((e) => console.log(e));
 
         this.rpc(client, data);
+
+        req.on('close', () => {});
       })
       .listen(port, () => {
         console.log(`listening on port ${port}`);
@@ -66,10 +65,22 @@ class Server {
    * @param {Object} data
    */
   rpc(client, data) {
-    client.send(data, 200);
-    // client;
-    // if (!data) {
-    // }
+    const { params, id } = data;
+    let { method } = data;
+    if (!params || !method) {
+      return void client.error(400, `Request structure is violated`);
+    }
+    method = data.method.split('/').join('.');
+
+    const procedure = this.application.get(method);
+
+    if (!procedure) {
+      return void client.error(404, `Method no found`);
+    }
+
+    procedure(...params).then((res) => {
+      client.send(res);
+    });
   }
 
   /**
@@ -105,7 +116,7 @@ class Server {
 }
 
 export default (application, port) => new Server(application, port);
-
+export { Server };
 //const application = this.application;
 // const {method:httpMethod, url} = req
 // const [entity, method, id] = url.slice(1).split('/');

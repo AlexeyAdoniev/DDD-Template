@@ -1,58 +1,68 @@
-import { IncomingMessage, ServerResponse } from 'node:http';
+const MIME_TYPES = {
+  html: 'text/html; charset=UTF-8',
+  json: 'application/json; charset=UTF-8',
+  js: 'application/javascript; charset=UTF-8',
+  css: 'text/css',
+  png: 'image/png',
+  ico: 'image/x-icon',
+  svg: 'image/svg+xml',
+};
+
+const HEADERS = {
+  'X-XSS-Protection': '1; mode=block',
+  'X-Content-Type-Options': 'nosniff',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubdomains; preload',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
 class Transport {
   /**
-   * @param {any} server
-   * @param {IncomingMessage} req
+   * @type {UserTypes.TransportFactory}
    */
   constructor(server, req) {
     this.server = server;
     this.req = req;
-    this.ip = req.socket.remoteAddress;
   }
 
-  write(...args) {
-    console.log(args);
-    throw new Error('write not impelented in Transport successor');
+  write(..._) {
+    _;
+    throw new Error('write method is not implemented');
   }
 
-  /**
-   * @param {number } code
-   *  @param {Object } data
-   */
-  error(code, data) {
-    code = 500;
-    this.send(data, code);
+  send(json, code) {
+    const data = JSON.stringify(json);
+    this.write(data, code, 'json');
   }
 
-  send(data, code = 200) {
-    const json = JSON.stringify(data);
-    this.write(json, code);
+  error(code, message) {
+    this.write(message, code, 'json');
   }
 }
 
 class HttpTransport extends Transport {
   /**
-   * @param {any} server
-   * @param {IncomingMessage} req
-   * @param {ServerResponse} res
+   * @type {UserTypes.HttpTransportFactory}
+   */
+  static create(server, req, res) {
+    return new HttpTransport(server, req, res);
+  }
+
+  /**
+   * @type {UserTypes.HttpTransportFactory}
    */
   constructor(server, req, res) {
     super(server, req);
     this.res = res;
   }
 
-  /**
-   * @param {string } data
-   * @param {number } code
-   */
-  write(data, code) {
-    this.res.statusCode = code;
+  write(data, code, ext) {
+    if (this.res.writableEnded) return;
+    const mimeType = MIME_TYPES[ext];
+    this.res.writeHead(code, { ...HEADERS, 'Content-type': mimeType });
     this.res.end(data);
   }
 }
 
-export default {
-  http: (server, req, res) => new HttpTransport(server, req, res),
-};
-export { Transport };
+export { Transport, HttpTransport };
